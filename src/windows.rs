@@ -231,7 +231,7 @@ impl MmapInner {
         Ok(inner)
     }
 
-    pub fn map_mut(len: usize, file: &File, offset: u64, _populate: bool) -> io::Result<MmapInner> {
+    pub fn map_mut(len: usize, file: &File, offset: u64, _populate: bool, _synchronize: bool) -> io::Result<MmapInner> {
         let exec = protection_supported(file.as_raw_handle(), PAGE_EXECUTE_READ);
         let mut access = FILE_MAP_READ | FILE_MAP_WRITE;
         let protection = if exec {

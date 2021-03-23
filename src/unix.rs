@@ -24,6 +24,19 @@ const MAP_POPULATE: libc::c_int = libc::MAP_POPULATE;
 #[cfg(not(any(target_os = "linux", target_os = "android")))]
 const MAP_POPULATE: libc::c_int = 0;
 
+#[cfg(any(target_os = "linux", target_os = "android"))]
+const MAP_SYNC: libc::c_int = libc::MAP_SYNC;
+
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
+const MAP_SYNC: libc::c_int = 0;
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+const MAP_SHARED_VALIDATE: libc::c_int = libc::MAP_SHARED_VALIDATE;
+
+#[cfg(not(any(target_os = "linux", target_os = "android")))]
+const MAP_SHARED_VALIDATE: libc::c_int = 0;
+
+
 pub struct MmapInner {
     ptr: *mut libc::c_void,
     len: usize,
@@ -94,12 +107,14 @@ impl MmapInner {
         )
     }
 
-    pub fn map_mut(len: usize, file: &File, offset: u64, populate: bool) -> io::Result<MmapInner> {
+    pub fn map_mut(len: usize, file: &File, offset: u64, populate: bool, synchronize: bool) -> io::Result<MmapInner> {
+        let shared = if synchronize { MAP_SHARED_VALIDATE } else {libc::MAP_SHARED};
         let populate = if populate { MAP_POPULATE } else { 0 };
+        let synchronize = if synchronize { MAP_SYNC } else { 0};
         MmapInner::new(
             len,
             libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_SHARED | populate,
+            shared | populate | synchronize,
             file.as_raw_fd(),
             offset,
         )

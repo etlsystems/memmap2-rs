@@ -45,6 +45,7 @@ pub struct MmapOptions {
     len: Option<usize>,
     stack: bool,
     populate: bool,
+    synchronize: bool,
 }
 
 impl MmapOptions {
@@ -192,6 +193,34 @@ impl MmapOptions {
         self
     }
 
+    /// Configures shared pages as synchronous.
+    ///
+    /// This option corresponds to the `MAP_SYNC` flag on Linux. It has no effect on Windows.
+    ///
+    /// This flag is supported only for files supporting DAX (direct mapping of persistent memory).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use memmap2::MmapOptions;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> std::io::Result<()> {
+    /// let file = File::open("LICENSE-MIT")?;
+    ///
+    /// let mmap = unsafe {
+    ///     MmapOptions::new().synchronize().map(&file)?
+    /// };
+    ///
+    /// assert_eq!(&b"Copyright"[..], &mmap[..9]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn synchronize(&mut self) -> &mut Self {
+        self.synchronize = true;
+        self
+    }
+
     /// Creates a read-only memory map backed by a file.
     ///
     /// # Errors
@@ -270,7 +299,7 @@ impl MmapOptions {
     /// # }
     /// ```
     pub unsafe fn map_mut(&self, file: &File) -> Result<MmapMut> {
-        MmapInner::map_mut(self.get_len(file)?, file, self.offset, self.populate)
+        MmapInner::map_mut(self.get_len(file)?, file, self.offset, self.populate, self.synchronize)
             .map(|inner| MmapMut { inner: inner })
     }
 
@@ -355,7 +384,7 @@ impl MmapOptions {
     /// This method returns an error when the underlying system call fails, which can happen for a
     /// variety of reasons, such as when the file is not open with read and write permissions.
     pub fn map_raw(&self, file: &File) -> Result<MmapRaw> {
-        MmapInner::map_mut(self.get_len(file)?, file, self.offset, self.populate)
+        MmapInner::map_mut(self.get_len(file)?, file, self.offset, self.populate, self.synchronize)
             .map(|inner| MmapRaw { inner: inner })
     }
 }
